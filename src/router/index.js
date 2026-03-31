@@ -10,6 +10,11 @@ import AuthLayout from '../components/Backend/AuthLayout.vue'
 import Login from '../views/Auth/Login.vue'
 import Register from '../views/Auth/Register.vue'
 import FrontendLayout from '../components/Frontend/FrontendLayout.vue'
+import Home from '../views/Frontend/Home.vue'
+import Consultation from '../views/Frontend/Consultation.vue'
+import EmotionDiary from '../views/Frontend/EmotionDiary.vue'
+import Knowledge from '../views/Frontend/Knowledge.vue'
+import ArticleDetail from '../views/Frontend/ArticleDetail.vue'
 const backendRoutes=[
     {
         path:'/back',
@@ -77,7 +82,20 @@ const frontendRoutes=[
         component:FrontendLayout,
         children:[
             {
-                path:''
+                path:'',
+                component:Home
+            },{
+                path:'consultation',
+                component:Consultation
+            },{
+                path:'emotion-diary',
+                component:EmotionDiary
+            },{
+                path:'knowledge',
+                component:Knowledge
+            },{
+                path:'knowledge/article/:id',
+                component:ArticleDetail
             }
         ]
     }
@@ -101,9 +119,15 @@ router.beforeEach((to,from,next)=>{
             else{
                 next('/back/dashboard')
             }
-        }
+        }//前台用户
         else if(userType===1){
-            
+            //如果前台用户访问了后台或者是它已经登录了却还访问登录页，那都要跳转至首页
+            if(to.path.startsWith('/back')||to.path.startsWith('/auth')){
+                next('/')
+            }
+            else{
+                next()
+            }
         }
     }else{
         //如果访问后台页面，那必须登录

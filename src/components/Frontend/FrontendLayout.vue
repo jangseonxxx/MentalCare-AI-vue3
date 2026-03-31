@@ -10,7 +10,7 @@
                 <router-link to="/consultation" class="nav-link" v-if="isLoggedin">AI咨询</router-link>
                 <router-link to="/emotion-diary" class="nav-link" v-if="isLoggedin">情绪日记</router-link>
                 <router-link to="/knowledge" class="nav-link">知识库</router-link>
-                <el-button class="logout-btn" v-if="isLoggedin">退出登录</el-button>
+                <el-button class="logout-btn" v-if="isLoggedin" @click="handleLogout">退出登录</el-button>
                 <template v-else>
                     <router-link to="/auth/login" class="nav-link">登录</router-link>
                     <router-link to="/auth/register" class="nav-link">
@@ -22,16 +22,30 @@
         <div class="main-content">
             <RouterView></RouterView>
         </div>
-        <div class="footer-container"></div>
+        <div class="footer-container">
+            <div class="footer-bottom">
+                <p>&copy; 2026 心理健康AI助手 All rights reserved.</p>
+            </div>
+        </div>
     </div>
 </template>
 <script setup>
 import robotPic from '@/assets/images/robot.png'
 import { onMounted, ref } from 'vue'
+import { logOut } from '../../api/admin'
+import { useRouter } from 'vue-router'
 const isLoggedin = ref(false)
+const router=useRouter()
 onMounted(() => {
     localStorage.getItem('token') ? isLoggedin.value = true : isLoggedin.value = false
 })
+const handleLogout=()=>{
+    logOut().then(()=>{
+        localStorage.removeItem('token')
+        localStorage.removeItem('userInfo')
+        router.push('/auth/login')
+    })
+}
 </script>
 <style lang="scss" scoped>
 .frontend-layout {

@@ -60,7 +60,7 @@ const submitForm = async (form) => {
         localStorage.setItem('userInfo', JSON.stringify(data.userInfo))
         //根据用户角色决定跳转的路径
         if(data.userInfo.userType===2) router.push('/back/dashboard')
-        else router.push(' ')
+        else router.push('/')
     } catch (error) {
         console.error('登录错误：', error)
     }
