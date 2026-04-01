@@ -1,0 +1,14 @@
+{
+    "name": "llm-proxy",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "start": "node server.js"
+    },
+    "dependencies": {
+        "better-sqlite3": "^11.1.2",
+        "dayjs": "^1.11.20",
+        "express": "^4.19.2"
+    }
+}

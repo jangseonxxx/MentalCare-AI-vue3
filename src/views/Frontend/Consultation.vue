@@ -45,7 +45,8 @@
                         </div>
                     </div>
                     <!-- 行动建议 -->
-                    <div class="healing-actions" v-if="currentEmotion.improvementSuggestions && currentEmotion.improvementSuggestions.length>0">
+                    <div class="healing-actions"
+                        v-if="currentEmotion.improvementSuggestions && currentEmotion.improvementSuggestions.length > 0">
                         <div class="actions-title">治愈小行动</div>
                         <div class="actions-list">
                             <div class="action-item" v-for="item in currentEmotion.improvementSuggestions" :key="item">
@@ -55,11 +56,11 @@
                         </div>
                     </div>
                     <!-- 风险提示 -->
-                    <div class="risk-notice" v-if="currentEmotion.riskLevel>1 && currentEmotion.isNegative">
+                    <div class="risk-notice" v-if="currentEmotion.riskLevel > 1 && currentEmotion.isNegative">
                         <div class="notice-icon">⚠️</div>
                         <div class="notice-content">
                             <div class="notice-title">温馨提示</div>
-                            <div class="notice-text">{{ currentEmotion.riskDescriprion }}</div>
+                            <div class="notice-text">{{ currentEmotion.riskDescription }}</div>
                         </div>
                     </div>
                 </div>
@@ -149,7 +150,8 @@
                     <div class="message-content">
                         <div class="message-bubble">
                             <!-- 如果当前发送方是ai，并且它正在输入，并且它还没有内容，那么就代表ai正在思考中，显示三个点 -->
-                            <div v-if="item.senderType === 2 && isAiTyping && !item.content" class="typing-indicator">
+                            <div v-if="item.senderType === 2 && isAiTyping && item.content.length === 0"
+                                class="typing-indicator">
                                 <div class="typing-dot"></div>
                                 <div class="typing-dot"></div>
                                 <div class="typing-dot"></div>
@@ -162,7 +164,8 @@
                             <!-- 用户消息 -->
                             <p v-else v-html="formatMessageContent(item.content)"></p>
                         </div>
-                        <div class="message-time">{{ item.senderType === 2 && isAiTyping ? '正在输入中' : item.createdAt }}
+                        <div class="message-time">{{ item.senderType === 2 && isAiTyping && item ===
+                            message[message.length - 1] ? '正在输入中' : item.createdAt }}
                         </div>
                     </div>
 
@@ -198,15 +201,16 @@ import { deleteSession, getHistorySessionDetail, getHistorySessionList, getSessi
 import { ElMessage } from 'element-plus'
 import MarkdownRenderer from '@/components/Frontend/MarkdownRenderer.vue'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
+import { dayjs } from 'element-plus'
 //情绪花园部分------------------------------------------------------------------------------------
 const currentEmotion = ref({
     primaryEmotion: '中性',
     emotionScore: 50,
-    isNegative: true,
+    isNegative: false,
     riskLevel: 2,
-    suggestion: '哈哈哈哈',
+    suggestion: '',
     improvementSuggestions: [],
-    riskDescriprion:'危险危险'
+    riskDescription: '危险危险'
 
 })
 const getIntensityClass = (score) => {
@@ -234,11 +238,11 @@ const getRiskText = (level) => {
 }
 //调用后端接口：ai返回的根据当前对话分析出来的结果。
 //有两个地方要调用这个情绪分析函数：1、点击了某个历史会话后，2、每次对话完毕后
-const loadSessionEmotion=(sessionId)=>{
-    if(!sessionId.toString().startsWith('session_')) sessionId='session_'+sessionId
-    getSessionEmotion(sessionId).then((res)=>{
-        console.log(res)
-        currentEmotion.value=res
+const loadSessionEmotion = (sessionId) => {
+    if (!sessionId.toString().startsWith('session_')) sessionId = 'session_' + sessionId
+    getSessionEmotion(sessionId).then((res) => {
+        console.log('getSessionEmotion', res)
+        currentEmotion.value = res
     })
 
 }
@@ -253,16 +257,19 @@ const getHistorySession = () => {
         pageNum: '1',
         pageSize: '10'
     }).then((res) => {
+        console.log('getHistorySessionList', res)
         historySession.value = res.records
     })
 }
 //处理点击了历史某个会话后的回调
 const handleHistorySessionClick = (session) => {
+    console.log(session)
     getHistorySessionDetail(session.id).then((res) => {
+        console.log('getHistorySessionDetail', res)
         message.value = res
         //更新当前会话的对象
         const sessionObject = {
-            sessionId: 'session_' + res[0].sessionId,//必须处理成session的格式，后端才能找到这个id
+            sessionId: 'session_' + session.id,//必须处理成session的格式，后端才能找到这个id
             status: 'ACTIVE',
             sessionTitle: session.sessionTitle
         }
@@ -310,6 +317,7 @@ const startNewSession = (userMsg) => {
         sessionParams.sessionTitle = currentSession.value.sessionTitle
     }
     startSession(sessionParams).then((res) => {
+        console.log('startSession', res)
         //将后端返回的数据存下来
         const sessionObject = {
             sessionId: res.sessionId,//注意id永远都是后端返回的，而不是我们创建的。它的格式为session_xxxx
@@ -330,8 +338,12 @@ const startNewSession = (userMsg) => {
 
     })
 }
+// 统一时间格式：YYYY-MM-DD HH:mm:ss
+const formatDateTime = (value = new Date()) => {
+    const formatted = dayjs(value).format('YYYY-MM-DD HH:mm:ss');
+    return formatted === 'Invalid Date' ? '' : formatted;
+};
 const startAIResponse = (sessionId, userMessage) => {
-    console.log(sessionId, userMessage)
     //防止重复发送
     if (isAiTyping.value) {
         ElMessage.error('AI助手正在输入中，请稍后..')
@@ -343,14 +355,14 @@ const startAIResponse = (sessionId, userMessage) => {
         id: crypto.randomUUID(),
         senderType: 1,
         content: userMessage,
-        createdAt: new Date().toISOString()
+        createdAt: formatDateTime()
     })
     //由于此时还没有拿到真正的后端数据，因此我们需要先模拟一条假的空ai数据加到message列表里面，这样才能显示出点点点
     const fakeAiMessage = {
         id: crypto.randomUUID(),
         senderType: 2,
         content: '',
-        createdAt: new Date().toISOString()
+        createdAt: formatDateTime()
     }
     message.value.push(fakeAiMessage)
 
@@ -374,6 +386,7 @@ const startAIResponse = (sessionId, userMessage) => {
             }
         },
         onmessage: (res) => {//流式数据会在这里被接收
+            // console.log(res)
             const raw = res.data.trim()
             //如果没有内容，就忽略当前空事件，继续监听，等下一条真正数据。如果你在 !raw 时直接 handleError，就会把正常流误判成“AI回复失败”。原因是流式接口里空包很常见且正常
             if (!raw) return
@@ -389,6 +402,7 @@ const startAIResponse = (sessionId, userMessage) => {
                 isAiTyping.value = false
                 control.abort()//终止请求
                 loadSessionEmotion(currentSession.value.sessionId)//开始情绪分析
+                getHistorySession()
                 return
             }
             const payload = JSON.parse(raw)
@@ -401,10 +415,7 @@ const startAIResponse = (sessionId, userMessage) => {
         },
         onerror: (error) => {
             handleError(error || 'AI回复失败')
-        },
-        // onclose: () => {
-        //     //开始情绪分析
-        // }
+        }
     })
 }
 const handleError = (error) => {

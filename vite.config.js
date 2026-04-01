@@ -12,6 +12,10 @@ export default defineConfig({
     },
     server: {
         proxy: {
+            '/api/psychological-chat': {
+                target: 'http://localhost:9000',
+                changeOrigin: true
+            },
             '/api': {//把/api之前的地址换为如下：
                 target: 'http://159.75.169.224:1235',
                 changeOrigin: true
